@@ -3,13 +3,11 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import type { BuilderRow } from "@/db/schema";
+import { BuilderLogo } from "@/components/builder-logo";
 import {
   SURFACES, STAGES, TYPES, AUDIENCES, DEPLOYMENTS, INTERCEPTION_ARCHITECTURES, POLICY_MODELS,
 } from "@/db/taxonomy";
 
-function faviconUrl(domain?: string | null) {
-  return `https://www.google.com/s2/favicons?domain=${domain ?? ""}&sz=64`;
-}
 function isConformant(b: BuilderRow) {
   return b.conformanceLevel === "core" || b.conformanceLevel === "extended";
 }
@@ -20,41 +18,40 @@ function confRank(b: BuilderRow) {
 type SortKey = "default" | "name" | "conformance";
 type SortDir = "asc" | "desc";
 
+// One accent axis: conformance. Extended = brand blue, Core = green, Aligned = neutral.
 function ConfBadge({ b }: { b: BuilderRow }) {
-  const base = "whitespace-nowrap rounded-full px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wide";
-  if (b.conformanceLevel === "extended") return <span className={`${base} bg-blue-50 text-blue-700`}>Extended</span>;
-  if (b.conformanceLevel === "core") return <span className={`${base} bg-green-50 text-green-700`}>Core</span>;
-  return <span className={`${base} bg-neutral-100 text-neutral-400`}>Aligned</span>;
+  const base = "inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wide";
+  if (b.conformanceLevel === "extended") return <span className={`${base} border-[#1A6EB5]/25 bg-[#EEF4FF] text-[#155A96]`}><Dot c="#1A6EB5" />Extended</span>;
+  if (b.conformanceLevel === "core") return <span className={`${base} border-green-600/25 bg-green-50 text-green-800`}><Dot c="#16A34A" />Core</span>;
+  return <span className={`${base} border-neutral-200 bg-neutral-50 text-neutral-500`}>Aligned</span>;
+}
+function Dot({ c }: { c: string }) {
+  return <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: c }} />;
 }
 
-const TONES: Record<string, string> = {
-  type: "bg-violet-50 text-violet-700",
-  target: "bg-amber-50 text-amber-700",
-  coverage: "bg-sky-50 text-sky-700",
-  deployment: "bg-teal-50 text-teal-700",
-  interception: "bg-indigo-50 text-indigo-700",
-  default: "bg-neutral-100 text-neutral-600",
-};
+// Everything else is a single restrained neutral chip — no rainbow.
+const CHIP = "whitespace-nowrap rounded-md border border-neutral-200 bg-neutral-50 px-1.5 py-0.5 text-[11px] font-medium text-neutral-600";
 
+// Policy model is the one genuinely categorical axis, so it keeps a soft tint.
 const POLICY_TONES: Record<string, string> = {
-  Deterministic: "bg-emerald-50 text-emerald-700",
-  "Non-deterministic": "bg-rose-50 text-rose-700",
-  Hybrid: "bg-orange-50 text-orange-700",
+  Deterministic: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  "Non-deterministic": "border-rose-200 bg-rose-50 text-rose-700",
+  Hybrid: "border-amber-200 bg-amber-50 text-amber-700",
 };
 function PolicyPill({ value }: { value: string }) {
   return (
-    <span className={`whitespace-nowrap rounded-md px-1.5 py-0.5 text-[11px] font-medium ${POLICY_TONES[value] ?? "bg-neutral-100 text-neutral-600"}`}>
+    <span className={`whitespace-nowrap rounded-md border px-1.5 py-0.5 text-[11px] font-medium ${POLICY_TONES[value] ?? "border-neutral-200 bg-neutral-50 text-neutral-600"}`}>
       {value}
     </span>
   );
 }
 
-function Chips({ items, tone = "default" }: { items?: string[] | null; tone?: keyof typeof TONES }) {
+function Chips({ items }: { items?: string[] | null; tone?: string }) {
   if (!items || items.length === 0) return <span className="text-neutral-300">—</span>;
   return (
     <div className="flex flex-wrap gap-1">
       {items.map((s) => (
-        <span key={s} className={`whitespace-nowrap rounded-md px-1.5 py-0.5 text-[11px] font-medium ${TONES[tone]}`}>{s}</span>
+        <span key={s} className={CHIP}>{s}</span>
       ))}
     </div>
   );
@@ -215,9 +212,9 @@ export function BuilderRegistry({ builders }: { builders: BuilderRow[] }) {
         )}
       </div>
 
-      {/* Data grid */}
-      <div className="overflow-x-auto rounded-2xl border border-neutral-200 shadow-sm">
-        <table className="w-full min-w-[1500px] text-sm">
+      {/* Data grid — table on desktop, cards on small screens */}
+      <div className="hidden overflow-x-auto rounded-2xl border border-neutral-200 shadow-sm md:block">
+        <table className="w-full min-w-[1080px] text-sm">
           <thead>
             <tr className="border-b border-neutral-200 bg-neutral-50/80">
               <th className="w-10 px-4 py-3"></th>
@@ -233,7 +230,7 @@ export function BuilderRegistry({ builders }: { builders: BuilderRow[] }) {
               <tr
                 key={b.id}
                 onClick={() => router.push(`/builders/${b.slug}`)}
-                className="group cursor-pointer border-b border-neutral-100 transition-colors last:border-0 hover:bg-blue-50/40"
+                className="group cursor-pointer border-b border-neutral-100 transition-colors last:border-0 hover:bg-[#EEF4FF]/60"
               >
                 <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                   <input
@@ -241,38 +238,74 @@ export function BuilderRegistry({ builders }: { builders: BuilderRow[] }) {
                     checked={selected.includes(b.id)}
                     onChange={() => toggleSelect(b.id)}
                     disabled={!selected.includes(b.id) && selected.length >= MAX_COMPARE}
-                    className="h-4 w-4 accent-blue-600 disabled:opacity-30"
+                    className="h-4 w-4 accent-[#1A6EB5] disabled:opacity-30"
                     aria-label={`Select ${b.name} to compare`}
                   />
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-neutral-100 bg-white">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={b.logoUrl || faviconUrl(b.domain)} alt="" width={20} height={20} className="rounded-sm" />
-                    </div>
+                    <BuilderLogo name={b.name} domain={b.domain} logoUrl={b.logoUrl} imgSize={20} className="h-9 w-9 shrink-0 rounded-lg border border-neutral-200 bg-white" />
                     <div className="min-w-0">
-                      <div className="font-medium text-neutral-900 group-hover:text-blue-700">{b.name}</div>
+                      <div className="font-semibold text-neutral-900 group-hover:text-[#1A6EB5]">{b.name}</div>
                       <div className="truncate text-xs text-neutral-400">{b.domain}</div>
                     </div>
                   </div>
                 </td>
                 <td className="px-4 py-3"><ConfBadge b={b} /></td>
                 <td className="px-4 py-3 text-neutral-600">{b.stage || <span className="text-neutral-300">—</span>}</td>
-                <td className="px-4 py-3"><Chips items={b.types} tone="type" /></td>
-                <td className="px-4 py-3"><Chips items={b.audiences} tone="target" /></td>
-                <td className="px-4 py-3"><Chips items={b.surfaces} tone="coverage" /></td>
-                <td className="px-4 py-3"><Chips items={b.deployments} tone="deployment" /></td>
-                <td className="px-4 py-3"><Chips items={b.interception} tone="interception" /></td>
+                <td className="px-4 py-3"><Chips items={b.types} /></td>
+                <td className="px-4 py-3"><Chips items={b.audiences} /></td>
+                <td className="px-4 py-3"><Chips items={b.surfaces} /></td>
+                <td className="px-4 py-3"><Chips items={b.deployments} /></td>
+                <td className="px-4 py-3"><Chips items={b.interception} /></td>
                 <td className="px-4 py-3">{b.policyModel ? <PolicyPill value={b.policyModel} /> : <span className="text-neutral-300">—</span>}</td>
               </tr>
             ))}
           </tbody>
         </table>
+        {rows.length === 0 && <EmptyState dirty={dirty} clearAll={clearAll} />}
+      </div>
+
+      {/* Card list — small screens */}
+      <div className="space-y-3 md:hidden">
+        {rows.map((b) => (
+          <div
+            key={b.id}
+            onClick={() => router.push(`/builders/${b.slug}`)}
+            className="cursor-pointer rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm transition-colors active:bg-neutral-50"
+          >
+            <div className="flex items-start gap-3">
+              <BuilderLogo name={b.name} domain={b.domain} logoUrl={b.logoUrl} imgSize={22} className="h-11 w-11 shrink-0 rounded-xl border border-neutral-200 bg-white" />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="truncate font-semibold text-neutral-900">{b.name}</div>
+                  <label onClick={(e) => e.stopPropagation()} className="shrink-0">
+                    <input
+                      type="checkbox"
+                      checked={selected.includes(b.id)}
+                      onChange={() => toggleSelect(b.id)}
+                      disabled={!selected.includes(b.id) && selected.length >= MAX_COMPARE}
+                      className="h-4 w-4 accent-[#1A6EB5] disabled:opacity-30"
+                      aria-label={`Select ${b.name} to compare`}
+                    />
+                  </label>
+                </div>
+                <div className="truncate text-xs text-neutral-400">{b.domain}</div>
+                <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                  <ConfBadge b={b} />
+                  {b.stage && <span className={CHIP}>{b.stage}</span>}
+                  {b.policyModel && <PolicyPill value={b.policyModel} />}
+                </div>
+                {(b.surfaces?.length ?? 0) > 0 && (
+                  <div className="mt-2"><Chips items={b.surfaces} /></div>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
         {rows.length === 0 && (
-          <div className="py-20 text-center">
-            <p className="font-mono text-sm text-neutral-400">No builders match these filters.</p>
-            {dirty && <button onClick={clearAll} className="mt-3 text-sm font-semibold" style={{ color: "#1A6EB5" }}>Clear filters</button>}
+          <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
+            <EmptyState dirty={dirty} clearAll={clearAll} />
           </div>
         )}
       </div>
@@ -346,9 +379,8 @@ function CompareModal({ builders, onClose }: { builders: BuilderRow[]; onClose: 
                 <th className="w-40 px-4 py-3" />
                 {builders.map((b) => (
                   <th key={b.id} className="min-w-[160px] px-4 py-3 text-left align-bottom">
-                    <a href={`/builders/${b.slug}`} className="flex items-center gap-2 font-semibold text-neutral-900 hover:text-blue-700">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={faviconUrl(b.domain)} alt="" width={18} height={18} className="rounded-sm" />
+                    <a href={`/builders/${b.slug}`} className="flex items-center gap-2 font-semibold text-neutral-900 hover:text-[#1A6EB5]">
+                      <BuilderLogo name={b.name} domain={b.domain} logoUrl={b.logoUrl} imgSize={16} className="h-6 w-6 shrink-0 rounded-md border border-neutral-200 bg-white" />
                       {b.name}
                     </a>
                   </th>
@@ -389,11 +421,20 @@ function CompareModal({ builders, onClose }: { builders: BuilderRow[]; onClose: 
 }
 
 const dash = <span className="text-neutral-300">—</span>;
-function list(items?: string[] | null, tone: keyof typeof TONES = "default") {
+function list(items?: string[] | null, _tone?: string) {
   if (!items || items.length === 0) return dash;
   return (
     <div className="flex flex-wrap gap-1">
-      {items.map((s) => <span key={s} className={`rounded-md px-1.5 py-0.5 text-[11px] font-medium ${TONES[tone]}`}>{s}</span>)}
+      {items.map((s) => <span key={s} className={CHIP}>{s}</span>)}
+    </div>
+  );
+}
+
+function EmptyState({ dirty, clearAll }: { dirty: boolean; clearAll: () => void }) {
+  return (
+    <div className="py-20 text-center">
+      <p className="font-mono text-sm text-neutral-400">No builders match these filters.</p>
+      {dirty && <button onClick={clearAll} className="mt-3 text-sm font-semibold" style={{ color: "#1A6EB5" }}>Clear filters</button>}
     </div>
   );
 }

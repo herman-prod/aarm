@@ -13,38 +13,57 @@ export const dynamic = "force-dynamic";
 
 export default async function BuildersPage() {
   const builders = await getApprovedBuilders();
+  const conformant = builders.filter((b) => b.conformanceLevel === "core" || b.conformanceLevel === "extended").length;
+
   return (
-    <div className="mx-auto max-w-5xl px-6 py-16">
-      {/* Header */}
-      <div className="mb-8">
-        <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground mb-4">
-          Builders
-        </p>
-        <h1 className="mb-4 text-3xl font-bold sm:text-4xl tracking-tight">
-          Builder Registry
-        </h1>
-        <p className="max-w-2xl text-muted-foreground text-sm leading-relaxed">
-          Compare the products building AARM-conformant systems and tools for the AI agent
-          runtime security problem space — by conformance, policy model, interception, and coverage.
-        </p>
-      </div>
+    <div>
+      {/* Hero */}
+      <section className="border-b border-blue-100" style={{ backgroundColor: "#EEF4FF" }}>
+        <div className="mx-auto max-w-5xl px-6 py-14">
+          <p className="mb-3 font-mono text-xs uppercase tracking-widest" style={{ color: "#1A6EB5" }}>Builder Registry</p>
+          <h1 className="mb-4 max-w-3xl text-3xl font-extrabold tracking-tight text-neutral-900 sm:text-4xl">
+            Who&apos;s building AI agent runtime security
+          </h1>
+          <p className="max-w-2xl text-sm leading-relaxed text-neutral-500">
+            Compare the products tackling the agentic runtime security problem — by conformance, policy model,
+            interception architecture, and coverage.
+          </p>
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            <Stat value={builders.length} label="Companies" />
+            <Stat value={conformant} label="AARM conformant" accent />
+            <Link href="/builders/new" className="ml-auto inline-flex items-center gap-1.5 rounded-xl bg-[#1A6EB5] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-90">
+              Add your company →
+            </Link>
+          </div>
+        </div>
+      </section>
 
-      {/* Legend */}
-      <div className="mb-8 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
-        <span className="inline-flex items-center gap-1.5">
-          <span className="rounded-full bg-green-50 px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wide text-green-700">Core</span>
-          <span className="rounded-full bg-blue-50 px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wide text-blue-700">Extended</span>
-          satisfy AARM requirements (R1–R6 / R1–R9) ·{" "}
-          <Link href="/conformance" className="font-medium" style={{ color: "#1A6EB5" }}>get verified →</Link>
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <span className="rounded-full bg-neutral-100 px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wide text-neutral-400">Aligned</span>
-          building in the same space ·{" "}
-          <Link href="/builders/new" className="font-medium" style={{ color: "#1A6EB5" }}>add your company →</Link>
-        </span>
-      </div>
+      <div className="mx-auto max-w-5xl px-6 py-10">
+        {/* Legend */}
+        <div className="mb-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-neutral-500">
+          <span className="inline-flex items-center gap-1.5">
+            <span className="rounded-full border border-green-600/25 bg-green-50 px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wide text-green-800">Core</span>
+            <span className="rounded-full border border-[#1A6EB5]/25 bg-[#EEF4FF] px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wide text-[#155A96]">Extended</span>
+            satisfy AARM requirements (R1–R6 / R1–R9) ·{" "}
+            <Link href="/conformance" className="font-medium" style={{ color: "#1A6EB5" }}>get verified →</Link>
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="rounded-full border border-neutral-200 bg-neutral-50 px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wide text-neutral-500">Aligned</span>
+            building in the same space
+          </span>
+        </div>
 
-      <BuilderRegistry builders={builders} />
+        <BuilderRegistry builders={builders} />
+      </div>
+    </div>
+  );
+}
+
+function Stat({ value, label, accent }: { value: number; label: string; accent?: boolean }) {
+  return (
+    <div className="rounded-xl border border-white/70 bg-white/70 px-4 py-2.5 shadow-sm backdrop-blur-sm">
+      <div className="text-xl font-extrabold tracking-tight" style={{ color: accent ? "#1A6EB5" : "#0B1E35" }}>{value}</div>
+      <div className="font-mono text-[10px] uppercase tracking-widest text-neutral-500">{label}</div>
     </div>
   );
 }

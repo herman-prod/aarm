@@ -7,6 +7,7 @@ import { db, isDbConfigured } from "@/db";
 import { claims } from "@/db/schema";
 import { getBuilderBySlug } from "@/lib/builders";
 import { ClaimButton } from "@/components/claim-button";
+import { BuilderLogo } from "@/components/builder-logo";
 import type { BuilderRow } from "@/db/schema";
 
 export const dynamic = "force-dynamic";
@@ -18,10 +19,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const b = await getBuilderBySlug(slug);
   if (!b) return {};
   return { title: `${b.name} — AARM Builder`, description: b.tagline ?? b.description ?? undefined };
-}
-
-function faviconUrl(domain?: string | null) {
-  return `https://www.google.com/s2/favicons?domain=${domain ?? ""}&sz=64`;
 }
 
 /** Renders a value or a muted blank placeholder. */
@@ -98,6 +95,15 @@ export default async function BuilderDetailPage({ params }: Props) {
   const verified = isExtended || isCore;
   const missing = completeness(b);
 
+  const hasClassification =
+    (b.surfaces?.length ?? 0) > 0 || !!b.stage || (b.types?.length ?? 0) > 0 ||
+    (b.audiences?.length ?? 0) > 0 || (b.deployments?.length ?? 0) > 0;
+  const hasTechnical = (b.interception?.length ?? 0) > 0 || !!b.policyModel || (b.decisions?.length ?? 0) > 0;
+  const hasReview = verified && (b.requirements?.length ?? 0) > 0;
+  const hasBody =
+    !!b.about || hasClassification || hasTechnical || hasReview ||
+    (b.capabilities?.length ?? 0) > 0 || !!b.architecture;
+
   return (
     <div className="bg-white">
       {/* Header */}
@@ -106,200 +112,276 @@ export default async function BuilderDetailPage({ params }: Props) {
           <Link href="/builders" className="mb-8 inline-flex items-center gap-1.5 text-xs font-medium text-neutral-500 transition-colors hover:text-neutral-800">
             ← Builder Registry
           </Link>
-          <div className="flex items-start gap-4">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={b.logoUrl || faviconUrl(b.domain)} alt="" width={32} height={32} className="rounded-sm" />
-            </div>
-            <div>
-              <div className="mb-2 flex flex-wrap items-center gap-2">
-                <h1 className="text-2xl font-extrabold tracking-tight text-neutral-900">{b.name}</h1>
-                {verified ? (
-                  <span className={`rounded-full border px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wide ${isExtended ? "border-blue-200 bg-blue-50 text-blue-700" : "border-green-200 bg-green-50 text-green-700"}`}>
-                    {isExtended ? "AARM Extended" : "AARM Core"}
-                  </span>
-                ) : (
-                  <span className="rounded-full border border-neutral-200 bg-neutral-50 px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wide text-neutral-500">
-                    Aligned
-                  </span>
-                )}
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex items-start gap-4">
+              <BuilderLogo name={b.name} domain={b.domain} logoUrl={b.logoUrl} imgSize={32} className="h-14 w-14 shrink-0 rounded-2xl border border-neutral-200 bg-white shadow-sm" />
+              <div>
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <h1 className="text-2xl font-extrabold tracking-tight text-neutral-900">{b.name}</h1>
+                  {verified ? (
+                    <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wide ${isExtended ? "border-[#1A6EB5]/25 bg-white text-[#155A96]" : "border-green-600/25 bg-white text-green-800"}`}>
+                      <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: isExtended ? "#1A6EB5" : "#16A34A" }} />
+                      {isExtended ? "AARM Extended" : "AARM Core"}
+                    </span>
+                  ) : (
+                    <span className="rounded-full border border-neutral-200 bg-white px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wide text-neutral-500">
+                      Aligned
+                    </span>
+                  )}
+                </div>
+                <p className="max-w-xl text-sm text-neutral-600"><Val>{b.tagline || b.description}</Val></p>
               </div>
-              <p className="text-sm text-neutral-500"><Val>{b.tagline || b.description}</Val></p>
-              {b.website && (
-                <a href={/^https?:\/\//i.test(b.website) ? b.website : `https://${b.website}`} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs font-medium transition-opacity hover:opacity-70" style={{ color: "#1A6EB5" }}>
-                  {b.domain} ↗
-                </a>
-              )}
             </div>
+            {b.website && (
+              <a
+                href={/^https?:\/\//i.test(b.website) ? b.website : `https://${b.website}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex shrink-0 items-center gap-1.5 self-start rounded-xl border border-[#1A6EB5]/30 bg-white px-4 py-2 text-sm font-semibold text-[#1A6EB5] shadow-sm transition-colors hover:bg-[#1A6EB5] hover:text-white"
+              >
+                Visit website ↗
+              </a>
+            )}
           </div>
+
+          {/* R1–R9 coverage strip */}
+          {verified && (b.requirements?.length ?? 0) > 0 && (
+            <div className="mt-6 flex flex-wrap items-center gap-1.5">
+              {ALL_REQS.map((req) => {
+                const st = b.requirements?.find((r) => r.id === req.id)?.status ?? "na";
+                const bg = st === "pass" ? "#16A34A" : st === "fail" ? "#E5E7EB" : "#E5E7EB";
+                const fg = st === "pass" ? "#fff" : "#9CA3AF";
+                return (
+                  <span key={req.id} title={`${req.id} · ${req.title}`} className="inline-flex h-6 w-8 items-center justify-center rounded-md font-mono text-[10px] font-bold" style={{ backgroundColor: bg, color: fg }}>
+                    {req.id}
+                  </span>
+                );
+              })}
+              <span className="ml-1 font-mono text-[10px] uppercase tracking-widest text-neutral-400">
+                {isExtended ? "R1–R9" : "R1–R6"} verified
+              </span>
+            </div>
+          )}
         </div>
       </section>
 
-      <div className="mx-auto max-w-4xl px-6 py-14">
-        {/* Team-only: missing-data flag */}
-        {isTeam && missing.length > 0 && (
-          <div className="mb-10 rounded-xl border border-amber-200 bg-amber-50 px-5 py-4">
-            <p className="text-sm font-semibold text-amber-800">Missing data ({missing.length})</p>
-            <p className="mt-1 text-sm text-amber-700">{missing.join(" · ")}</p>
-          </div>
-        )}
-
-        {/* Overview */}
-        {b.about && (
-          <section className="mb-14">
-            <h2 className="mb-4 font-mono text-xs uppercase tracking-widest text-neutral-400">Overview</h2>
-            <p className="leading-relaxed text-neutral-600">{b.about}</p>
-          </section>
-        )}
-
-        {/* Classification */}
-        <section className="mb-14">
-          <h2 className="mb-5 font-mono text-xs uppercase tracking-widest text-neutral-400">Classification</h2>
-          <dl className="grid gap-x-8 gap-y-5 sm:grid-cols-2">
-            <Row label="Coverage surface"><Chips items={b.surfaces} /></Row>
-            <Row label="Stage"><Val>{b.stage}</Val></Row>
-            <Row label="Type"><Chips items={b.types} /></Row>
-            <Row label="Target audience"><Chips items={b.audiences} /></Row>
-            <Row label="Deployment"><Chips items={b.deployments} /></Row>
-          </dl>
-        </section>
-
-        {/* Technical (spec-grounded, TWG-verified) */}
-        <section className="mb-14">
-          <h2 className="mb-1 font-mono text-xs uppercase tracking-widest text-neutral-400">Technical profile</h2>
-          <p className="mb-5 text-xs text-neutral-400">Spec-grounded axes, verified by the TWG.</p>
-          <dl className="grid gap-x-8 gap-y-5 sm:grid-cols-2">
-            <Row label="Interception architecture (R1)"><Chips items={b.interception} /></Row>
-            <Row label="Policy model (R3)"><Val>{b.policyModel}</Val></Row>
-            <Row label="Authorization decisions (R4)"><Chips items={b.decisions} /></Row>
-            <Row label="Conformance level"><Val>{verified ? (isExtended ? "Extended (R1–R9)" : "Core (R1–R6)") : "Aligned"}</Val></Row>
-          </dl>
-        </section>
-
-        {/* Conformance review (verified only) */}
-        {verified && (b.requirements?.length ?? 0) > 0 && (
-          <section className="mb-14">
-            <h2 className="mb-5 font-mono text-xs uppercase tracking-widest text-neutral-400">Conformance review</h2>
-
-            {/* Record metadata */}
-            <div className="mb-6 grid gap-2 text-sm sm:grid-cols-2">
-              {[
-                { label: "Specification version", value: "AARM v1.0" },
-                { label: "Conformance tier", value: isExtended ? "Extended (R1–R9)" : "Core (R1–R6)" },
-                { label: "Verified by", value: b.verifiedBy ?? "Herman Errico, AARM Author" },
-                { label: "Date", value: b.verifiedDate ?? "—" },
-              ].map((row) => (
-                <div key={row.label} className="flex justify-between rounded-lg border border-neutral-100 bg-neutral-50 px-4 py-2.5">
-                  <span className="text-neutral-400">{row.label}</span>
-                  <span className="font-medium text-neutral-700">{row.value}</span>
-                </div>
-              ))}
+      <div className="mx-auto grid max-w-5xl gap-10 px-6 py-14 lg:grid-cols-[1fr_320px]">
+        {/* ── Main column ── */}
+        <div className="min-w-0">
+          {/* Team-only: missing-data flag */}
+          {isTeam && missing.length > 0 && (
+            <div className="mb-10 rounded-xl border border-amber-200 bg-amber-50 px-5 py-4">
+              <p className="text-sm font-semibold text-amber-800">Missing data ({missing.length})</p>
+              <p className="mt-1 text-sm text-amber-700">{missing.join(" · ")}</p>
             </div>
+          )}
 
-            <div className="overflow-hidden rounded-xl border border-neutral-100">
-              <table className="w-full text-sm">
-                <tbody>
-                  {ALL_REQS.map((req) => {
-                    const m = b.requirements?.find((r) => r.id === req.id);
-                    const status = m?.status ?? "na";
-                    return (
-                      <tr key={req.id} className="border-b border-neutral-50 last:border-0">
-                        <td className="px-4 py-3">
-                          <code className="rounded px-1.5 py-0.5 font-mono text-xs font-bold" style={req.level === "MUST" ? { backgroundColor: "rgba(26,110,181,0.08)", color: "#1A6EB5" } : { backgroundColor: "rgba(107,114,128,0.08)", color: "#6B7280" }}>{req.id}</code>
-                        </td>
-                        <td className="px-4 py-3 text-neutral-700">
-                          {req.title}{m?.notes && <span className="ml-1.5 text-xs text-neutral-400">— {m.notes}</span>}
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          {status === "pass" && <span className="text-green-600">✅</span>}
-                          {status === "fail" && <span className="text-red-500">❌</span>}
-                          {status === "na" && <span className="text-neutral-300">—</span>}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+          {/* Limited profile — when there's essentially nothing to show */}
+          {!hasBody && (
+            <div className="mb-4 rounded-2xl border border-dashed border-neutral-200 bg-neutral-50/60 px-6 py-10 text-center">
+              <p className="text-sm font-medium text-neutral-600">This is a limited profile.</p>
+              <p className="mx-auto mt-1 max-w-sm text-sm text-neutral-400">
+                {b.name} is listed as building in the agentic runtime security space. Details will appear once the team
+                claims and completes their listing.
+              </p>
             </div>
-          </section>
-        )}
+          )}
 
-        {/* Capabilities */}
-        {(b.capabilities?.length ?? 0) > 0 && (
-          <section className="mb-14">
-            <h2 className="mb-5 font-mono text-xs uppercase tracking-widest text-neutral-400">Platform capabilities</h2>
-            <ul className="space-y-2">
-              {b.capabilities!.map((cap) => (
-                <li key={cap} className="flex items-start gap-2.5 text-sm text-neutral-600">
-                  <svg className="mt-0.5 h-4 w-4 shrink-0" style={{ color: "#1A6EB5" }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                  {cap}
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
+          {/* Overview */}
+          {b.about && (
+            <Block title="Overview">
+              <p className="leading-relaxed text-neutral-600">{b.about}</p>
+            </Block>
+          )}
 
-        {/* Architecture */}
-        {b.architecture && (
-          <section className="mb-14">
-            <h2 className="mb-4 font-mono text-xs uppercase tracking-widest text-neutral-400">Architecture</h2>
-            <p className="leading-relaxed text-neutral-600">{b.architecture}</p>
-          </section>
-        )}
+          {/* Classification */}
+          {hasClassification && (
+            <Block title="Classification">
+              <dl className="grid gap-x-8 gap-y-5 sm:grid-cols-2">
+                {(b.surfaces?.length ?? 0) > 0 && <Row label="Coverage surface"><Chips items={b.surfaces} /></Row>}
+                {b.stage && <Row label="Stage">{b.stage}</Row>}
+                {(b.types?.length ?? 0) > 0 && <Row label="Type"><Chips items={b.types} /></Row>}
+                {(b.audiences?.length ?? 0) > 0 && <Row label="Target audience"><Chips items={b.audiences} /></Row>}
+                {(b.deployments?.length ?? 0) > 0 && <Row label="Deployment"><Chips items={b.deployments} /></Row>}
+              </dl>
+            </Block>
+          )}
 
-        {/* Key facts */}
-        {(b.keyFacts?.length ?? 0) > 0 && (
-          <section className="mb-14">
-            <h2 className="mb-5 font-mono text-xs uppercase tracking-widest text-neutral-400">Key facts</h2>
-            <div className="overflow-hidden rounded-xl border border-neutral-100">
-              <table className="w-full text-sm">
-                <tbody>
-                  {b.keyFacts!.map((f, i) => (
-                    <tr key={f.label} className={i < b.keyFacts!.length - 1 ? "border-b border-neutral-50" : ""}>
-                      <td className="w-40 px-4 py-3 text-neutral-400">{f.label}</td>
-                      <td className="px-4 py-3 font-medium text-neutral-700">{f.value}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        )}
+          {/* Technical (spec-grounded, TWG-verified) */}
+          {hasTechnical && (
+            <Block title="Technical profile" note="Spec-grounded axes, verified by the TWG.">
+              <dl className="grid gap-x-8 gap-y-5 sm:grid-cols-2">
+                {(b.interception?.length ?? 0) > 0 && <Row label="Interception architecture (R1)"><Chips items={b.interception} /></Row>}
+                {b.policyModel && <Row label="Policy model (R3)">{b.policyModel}</Row>}
+                {(b.decisions?.length ?? 0) > 0 && <Row label="Authorization decisions (R4)"><Chips items={b.decisions} /></Row>}
+              </dl>
+            </Block>
+          )}
 
-        {/* Point of contact — team only */}
-        {isTeam && (
-          <section className="mb-14">
-            <h2 className="mb-5 font-mono text-xs uppercase tracking-widest text-neutral-400">Point of contact <span className="text-neutral-300">(team-only)</span></h2>
-            <dl className="grid gap-x-8 gap-y-5 sm:grid-cols-2">
-              <Row label="Name"><Val>{b.pocName}</Val></Row>
-              <Row label="Email"><Val>{b.pocEmail}</Val></Row>
-            </dl>
-          </section>
-        )}
+          {/* Conformance review (verified only) */}
+          {hasReview && (
+            <Block title="Conformance review">
+              <div className="overflow-hidden rounded-xl border border-neutral-200">
+                <table className="w-full text-sm">
+                  <tbody>
+                    {ALL_REQS.map((req) => {
+                      const m = b.requirements?.find((r) => r.id === req.id);
+                      const status = m?.status ?? "na";
+                      return (
+                        <tr key={req.id} className="border-b border-neutral-100 last:border-0">
+                          <td className="px-4 py-3 align-top">
+                            <code className="rounded px-1.5 py-0.5 font-mono text-xs font-bold" style={req.level === "MUST" ? { backgroundColor: "rgba(26,110,181,0.08)", color: "#1A6EB5" } : { backgroundColor: "rgba(107,114,128,0.08)", color: "#6B7280" }}>{req.id}</code>
+                          </td>
+                          <td className="px-4 py-3 text-neutral-700">
+                            {req.title}{m?.notes && <span className="ml-1.5 text-xs text-neutral-400">— {m.notes}</span>}
+                          </td>
+                          <td className="px-4 py-3 text-right"><StatusPill status={status} /></td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </Block>
+          )}
 
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-neutral-100 pt-8">
-          <p className="text-xs text-neutral-400">
-            {claimedByOther && !isAdmin
-              ? `Maintained by the ${b.name} team.`
-              : isOwner
-              ? "You maintain this listing."
-              : "Listed in the AARM registry."}
-            {verified && " Conformance verified by the AARM working group."}
-          </p>
-          <ClaimButton
-            builderId={b.id}
-            isAuthed={isAuthed}
-            isOwner={isOwner || isAdmin}
-            claimedByOther={claimedByOther && !isAdmin}
-            hasPendingClaim={hasPendingClaim}
-            slug={b.slug}
-          />
+          {/* Capabilities */}
+          {(b.capabilities?.length ?? 0) > 0 && (
+            <Block title="Platform capabilities">
+              <ul className="space-y-2.5">
+                {b.capabilities!.map((cap) => (
+                  <li key={cap} className="flex items-start gap-2.5 text-sm leading-relaxed text-neutral-600">
+                    <svg className="mt-0.5 h-4 w-4 shrink-0" style={{ color: "#1A6EB5" }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                    {cap}
+                  </li>
+                ))}
+              </ul>
+            </Block>
+          )}
+
+          {/* Architecture */}
+          {b.architecture && (
+            <Block title="Architecture">
+              <p className="whitespace-pre-line leading-relaxed text-neutral-600">{b.architecture}</p>
+            </Block>
+          )}
         </div>
+
+        {/* ── Sticky sidebar ── */}
+        <aside className="h-max space-y-4 lg:sticky lg:top-6">
+          {/* Conformance card */}
+          <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+            <div className="mb-3 font-mono text-[10px] uppercase tracking-widest text-neutral-400">Conformance</div>
+            <div className="flex items-center gap-2">
+              <span className="text-lg font-extrabold tracking-tight" style={{ color: verified ? "#1A6EB5" : "#525252" }}>
+                {verified ? (isExtended ? "Extended" : "Core") : "Aligned"}
+              </span>
+              <span className="text-xs text-neutral-400">{verified ? (isExtended ? "R1–R9" : "R1–R6") : "in the space"}</span>
+            </div>
+            {verified ? (
+              <dl className="mt-4 space-y-2 border-t border-neutral-100 pt-4 text-sm">
+                {[
+                  ["Spec", "AARM v1.0"],
+                  ["Verified by", b.verifiedBy ?? "AARM working group"],
+                  ["Date", b.verifiedDate ?? "—"],
+                ].map(([k, v]) => (
+                  <div key={k} className="flex justify-between gap-3">
+                    <dt className="text-neutral-400">{k}</dt>
+                    <dd className="text-right font-medium text-neutral-700">{v}</dd>
+                  </div>
+                ))}
+              </dl>
+            ) : (
+              <p className="mt-3 text-sm leading-relaxed text-neutral-500">
+                Building in the agentic runtime security space.{" "}
+                <Link href="/conformance" className="font-medium" style={{ color: "#1A6EB5" }}>Get verified →</Link>
+              </p>
+            )}
+          </div>
+
+          {/* Key facts */}
+          {(b.keyFacts?.length ?? 0) > 0 && (
+            <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+              <div className="mb-3 font-mono text-[10px] uppercase tracking-widest text-neutral-400">Key facts</div>
+              <dl className="space-y-2.5 text-sm">
+                {b.keyFacts!.map((f) => (
+                  <div key={f.label}>
+                    <dt className="text-xs text-neutral-400">{f.label}</dt>
+                    <dd className="font-medium text-neutral-800">{f.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          )}
+
+          {/* Point of contact — team only */}
+          {isTeam && (
+            <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+              <div className="mb-3 font-mono text-[10px] uppercase tracking-widest text-neutral-400">
+                Point of contact <span className="text-neutral-300">· team-only</span>
+              </div>
+              <dl className="space-y-2.5 text-sm">
+                <div><dt className="text-xs text-neutral-400">Name</dt><dd className="font-medium text-neutral-800"><Val>{b.pocName}</Val></dd></div>
+                <div><dt className="text-xs text-neutral-400">Email</dt><dd className="font-medium text-neutral-800"><Val>{b.pocEmail}</Val></dd></div>
+              </dl>
+            </div>
+          )}
+
+          {/* Claim / ownership */}
+          <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+            <p className="mb-3 text-xs leading-relaxed text-neutral-400">
+              {claimedByOther && !isAdmin
+                ? `Maintained by the ${b.name} team.`
+                : isOwner
+                ? "You maintain this listing."
+                : "Listed in the AARM registry."}
+              {verified && " Conformance verified by the AARM working group."}
+            </p>
+            <ClaimButton
+              builderId={b.id}
+              isAuthed={isAuthed}
+              isOwner={isOwner || isAdmin}
+              claimedByOther={claimedByOther && !isAdmin}
+              hasPendingClaim={hasPendingClaim}
+              slug={b.slug}
+            />
+          </div>
+        </aside>
       </div>
     </div>
   );
+}
+
+function Block({ title, note, children }: { title: string; note?: string; children: React.ReactNode }) {
+  return (
+    <section className="mb-12">
+      <h2 className="mb-4 font-mono text-xs uppercase tracking-widest text-neutral-400">{title}</h2>
+      {note && <p className="-mt-2 mb-4 text-xs text-neutral-400">{note}</p>}
+      {children}
+    </section>
+  );
+}
+
+function StatusPill({ status }: { status: string }) {
+  if (status === "pass") {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full border border-green-600/20 bg-green-50 px-2 py-0.5 text-xs font-semibold text-green-700">
+        <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+        Pass
+      </span>
+    );
+  }
+  if (status === "fail") {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full border border-rose-500/20 bg-rose-50 px-2 py-0.5 text-xs font-semibold text-rose-600">
+        <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M6 6l12 12M6 18L18 6" /></svg>
+        Not met
+      </span>
+    );
+  }
+  return <span className="text-xs text-neutral-300">—</span>;
 }
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
