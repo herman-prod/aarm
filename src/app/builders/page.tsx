@@ -28,10 +28,12 @@ export default async function BuildersPage() {
             Compare the products tackling the agentic runtime security problem — by conformance, policy model,
             interception architecture, and coverage.
           </p>
-          <div className="mt-6 flex flex-wrap items-center gap-3">
-            <Stat value={builders.length} label="Companies" />
-            <Stat value={conformant} label="AARM conformant" accent />
-            <Link href="/builders/new" className="ml-auto inline-flex items-center gap-1.5 rounded-xl bg-[#1A6EB5] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-90">
+          <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex gap-3">
+              <Stat value={builders.length} label="Companies" />
+              <Stat value={conformant} label="AARM conformant" accent />
+            </div>
+            <Link href="/builders/new" className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-[#1A6EB5] px-5 py-3 text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-90 sm:w-auto">
               Add your company →
             </Link>
           </div>
