@@ -108,7 +108,7 @@ export default async function BuilderDetailPage({ params }: Props) {
     <div className="bg-white">
       {/* Header */}
       <section className="border-b border-blue-100" style={{ backgroundColor: "#EEF4FF" }}>
-        <div className="mx-auto max-w-4xl px-6 py-14">
+        <div className="mx-auto max-w-5xl px-6 py-14">
           <Link href="/builders" className="mb-8 inline-flex items-center gap-1.5 text-xs font-medium text-neutral-500 transition-colors hover:text-neutral-800">
             ← Builder Registry
           </Link>
