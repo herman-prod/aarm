@@ -112,11 +112,11 @@ export default async function BuilderDetailPage({ params }: Props) {
           <Link href="/builders" className="mb-8 inline-flex items-center gap-1.5 text-xs font-medium text-neutral-500 transition-colors hover:text-neutral-800">
             ← Builder Registry
           </Link>
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-            <div className="flex items-start gap-4">
-              <BuilderLogo name={b.name} domain={b.domain} logoUrl={b.logoUrl} imgSize={32} className="h-14 w-14 shrink-0 rounded-2xl border border-neutral-200 bg-white shadow-sm" />
-              <div>
-                <div className="mb-2 flex flex-wrap items-center gap-2">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-4">
+              <BuilderLogo name={b.name} domain={b.domain} logoUrl={b.logoUrl} imgSize={30} className="h-14 w-14 shrink-0 rounded-2xl border border-neutral-200 bg-white shadow-sm" />
+              <div className="min-w-0">
+                <div className="mb-1.5 flex flex-wrap items-center gap-2">
                   <h1 className="text-2xl font-extrabold tracking-tight text-neutral-900">{b.name}</h1>
                   {verified ? (
                     <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wide ${isExtended ? "border-[#1A6EB5]/25 bg-white text-[#155A96]" : "border-green-600/25 bg-white text-green-800"}`}>
@@ -129,7 +129,7 @@ export default async function BuilderDetailPage({ params }: Props) {
                     </span>
                   )}
                 </div>
-                <p className="max-w-xl text-sm text-neutral-600"><Val>{b.tagline || b.description}</Val></p>
+                <p className="max-w-xl text-sm leading-relaxed text-neutral-600"><Val>{b.tagline || b.description}</Val></p>
               </div>
             </div>
             {b.website && (
@@ -137,31 +137,12 @@ export default async function BuilderDetailPage({ params }: Props) {
                 href={/^https?:\/\//i.test(b.website) ? b.website : `https://${b.website}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex shrink-0 items-center gap-1.5 self-start rounded-xl border border-[#1A6EB5]/30 bg-white px-4 py-2 text-sm font-semibold text-[#1A6EB5] shadow-sm transition-colors hover:bg-[#1A6EB5] hover:text-white"
+                className="inline-flex shrink-0 items-center gap-1.5 self-start rounded-xl border border-[#1A6EB5]/30 bg-white px-4 py-2 text-sm font-semibold text-[#1A6EB5] shadow-sm transition-colors hover:bg-[#1A6EB5] hover:text-white sm:self-center"
               >
                 Visit website ↗
               </a>
             )}
           </div>
-
-          {/* R1–R9 coverage strip */}
-          {verified && (b.requirements?.length ?? 0) > 0 && (
-            <div className="mt-6 flex flex-wrap items-center gap-1.5">
-              {ALL_REQS.map((req) => {
-                const st = b.requirements?.find((r) => r.id === req.id)?.status ?? "na";
-                const bg = st === "pass" ? "#16A34A" : st === "fail" ? "#E5E7EB" : "#E5E7EB";
-                const fg = st === "pass" ? "#fff" : "#9CA3AF";
-                return (
-                  <span key={req.id} title={`${req.id} · ${req.title}`} className="inline-flex h-6 w-8 items-center justify-center rounded-md font-mono text-[10px] font-bold" style={{ backgroundColor: bg, color: fg }}>
-                    {req.id}
-                  </span>
-                );
-              })}
-              <span className="ml-1 font-mono text-[10px] uppercase tracking-widest text-neutral-400">
-                {isExtended ? "R1–R9" : "R1–R6"} verified
-              </span>
-            </div>
-          )}
         </div>
       </section>
 
