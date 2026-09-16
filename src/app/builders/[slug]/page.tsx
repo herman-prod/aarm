@@ -126,7 +126,7 @@ export default async function BuilderDetailPage({ params }: Props) {
               </div>
               <p className="text-sm text-neutral-500"><Val>{b.tagline || b.description}</Val></p>
               {b.website && (
-                <a href={b.website} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs font-medium transition-opacity hover:opacity-70" style={{ color: "#1A6EB5" }}>
+                <a href={/^https?:\/\//i.test(b.website) ? b.website : `https://${b.website}`} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs font-medium transition-opacity hover:opacity-70" style={{ color: "#1A6EB5" }}>
                   {b.domain} ↗
                 </a>
               )}
