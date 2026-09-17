@@ -26,6 +26,19 @@ export type AARMEvent = {
 
 export const EVENTS: AARMEvent[] = [
   {
+    id: "aarm-intercept-demo-night",
+    name: "AARM Intercept Demo Night",
+    url: "https://luma.com/vanta-zg62",
+    dateLabel: "October 21, 2026",
+    startISO: "2026-10-21",
+    endISO: "2026-10-21",
+    location: "San Francisco, CA",
+    description:
+      "An evening on securing AI agents once they start taking action in real systems — an intro to AARM, a panel on agentic runtime security for incident management, seven lightning demos, then networking and drinks. Hosted by Vanta, Insecure Agents, and Keycard, following the CSA Agentic AI Security Summit.",
+    tag: "Community",
+    featured: true,
+  },
+  {
     id: "intercept-2026",
     name: "INTERCEPT 2026",
     bannerLabel: "INTERCEPT — The AARM Conference",
