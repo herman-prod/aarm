@@ -12,6 +12,7 @@ export const BUILDERS: Builder[] = [
   { name: "Formal", desc: "Formal enforces least-privilege at the wire protocol layer for humans and AI agents.", conformance: "Conformant", url: "https://www.formal.ai", slug: "formal" },
   { name: "Operant AI", desc: "Discover, Detect, and Defend your AI, Agents, and MCP in real-time.", conformance: "Conformant", url: "https://www.operant.ai", slug: "operant" },
   { name: "MintMCP", desc: "Enterprise governance platform for AI agents and MCP servers.", conformance: "Conformant", url: "https://www.mintmcp.com", slug: "mintmcp" },
+  { name: "Quilr", desc: "An AI-native security platform that safeguards data, users, and AI applications.", conformance: "Conformant", url: "https://www.quilr.ai", slug: "quilr" },
   { name: "Okta", desc: "Identity-native control plane for AI agents — discover, govern, and secure agents and their access to resources.", conformance: "Aligned", url: "https://www.okta.com/products/govern-ai-agent-identity/" },
   { name: "Rubrik", desc: "Cyber resilience platform securing enterprise data, identity, and AI agents against threats and ensuring recovery.", conformance: "Aligned", url: "https://www.rubrik.com/products/rubrik-agent-cloud" },
   { name: "Airia", desc: "AI Security and Governance platform with runtime security at two layers: an AI Gateway intercepts every model call and an MCP Gateway intercepts every tool call, both feeding a shared Policy Engine with prompt-injection, DLP, and identity-aware controls.", conformance: "Conformant", url: "https://airia.com", slug: "airia" },
