@@ -433,14 +433,28 @@ export async function submitPaper(input: {
     throw new Error("A PDF paper in IEEE conference format is required.");
   }
 
-  // Submission is final — one paper per author, no edits once submitted.
+  // One paper per author. Authors may resubmit (edit) while the paper is still
+  // in the pipeline; once a final decision is made it's locked.
   const existing = await getMyPaper();
-  if (existing) throw new Error("Your paper is already submitted and can't be changed.");
-  await database.insert(papers).values({
-    userId: u.id, title: input.talkTitle, coreTopics: input.coreTopics,
-    keyTakeaways: input.keyTakeaways, relevance: input.relevance,
-    fileUrl: input.fileUrl, fileName: input.fileName, status: "pending",
-  });
+  if (existing && (existing.status === "accepted" || existing.status === "rejected")) {
+    throw new Error("Your paper has a final decision and can no longer be changed.");
+  }
+
+  if (existing) {
+    // Resubmission: update in place and re-enter review as pending.
+    await database.update(papers).set({
+      title: input.talkTitle, coreTopics: input.coreTopics,
+      keyTakeaways: input.keyTakeaways, relevance: input.relevance,
+      fileUrl: input.fileUrl, fileName: input.fileName, status: "pending",
+      updatedAt: new Date(),
+    }).where(eq(papers.id, existing.id));
+  } else {
+    await database.insert(papers).values({
+      userId: u.id, title: input.talkTitle, coreTopics: input.coreTopics,
+      keyTakeaways: input.keyTakeaways, relevance: input.relevance,
+      fileUrl: input.fileUrl, fileName: input.fileName, status: "pending",
+    });
+  }
   await notifyPaperSubmitted({ to: u.email ?? "", talkTitle: input.talkTitle });
   revalidatePath("/intercept/cfp");
 }

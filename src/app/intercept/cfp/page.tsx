@@ -48,8 +48,8 @@ export default async function CfpPage() {
           {status && <span className={`border px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-widest ${status.cls}`}>{status.label}</span>}
         </div>
 
-        {/* Anonymize banner — only while composing a new submission */}
-        {!paper && (
+        {/* Anonymize banner — while composing or revising a submission */}
+        {!decided && (
           <div className="mb-8 space-y-3">
             <div className="border-l-2 border-[#FF3B30] bg-[#FF3B30]/10 px-4 py-3">
               <p className="font-mono text-sm text-[#FFB4AE]">
@@ -70,28 +70,35 @@ export default async function CfpPage() {
           </div>
         )}
 
-        {/* No paper yet → submission form. Otherwise a locked, read-only view. */}
-        {!paper ? (
-          <CfpForm paper={null} />
-        ) : (
+        {/* Decided → locked read-only view. Otherwise an editable form (new or resubmit). */}
+        {decided ? (
           <div className="mb-10 space-y-6">
             <div className="border border-neutral-800 bg-neutral-950 p-5 font-mono text-sm text-neutral-400">
-              Submitted as <span className="text-white">Paper #{paper.number}</span> — locked for review. Submissions can&apos;t be edited once they&apos;re in.
+              Submitted as <span className="text-white">Paper #{paper!.number}</span> — a decision has been made, so it&apos;s now locked.
             </div>
             <div className="space-y-5">
-              {([["Title of talk", paper.title], ["Core topics", paper.coreTopics], ["Key takeaways", paper.keyTakeaways], ["Why it matters & who it's for", paper.relevance]] as const).map(([lab, val]) => (
+              {([["Title of talk", paper!.title], ["Core topics", paper!.coreTopics], ["Key takeaways", paper!.keyTakeaways], ["Why it matters & who it's for", paper!.relevance]] as const).map(([lab, val]) => (
                 <div key={lab} className="border border-neutral-800 bg-neutral-950 p-5">
                   <div className="mb-2 font-mono text-[10px] uppercase tracking-[0.2em] text-neutral-500">{lab}</div>
                   <p className="whitespace-pre-wrap font-mono text-sm text-neutral-200">{val || "—"}</p>
                 </div>
               ))}
-              {paper.fileName && (
+              {paper!.fileName && (
                 <div className="font-mono text-xs text-neutral-500">
-                  Attached: {paper.fileUrl ? <a href={`/api/intercept/paper?id=${paper.id}`} target="_blank" rel="noopener noreferrer" className="text-[#2EFF7B] underline">{paper.fileName} ↗</a> : paper.fileName}
+                  Attached: {paper!.fileUrl ? <a href={`/api/intercept/paper?id=${paper!.id}`} target="_blank" rel="noopener noreferrer" className="text-[#2EFF7B] underline">{paper!.fileName} ↗</a> : paper!.fileName}
                 </div>
               )}
             </div>
           </div>
+        ) : (
+          <>
+            {paper && (
+              <div className="mb-6 border border-neutral-800 bg-neutral-950 px-4 py-3 font-mono text-sm text-neutral-400">
+                This is <span className="text-white">Paper #{paper.number}</span>. You can revise and resubmit any time before submissions close on December 31, 2026 — resubmitting puts it back into the review queue.
+              </div>
+            )}
+            <CfpForm paper={paper} />
+          </>
         )}
 
         {/* Reviewer feedback — shown once a decision is made (blind) */}

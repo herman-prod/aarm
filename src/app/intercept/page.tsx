@@ -182,9 +182,9 @@ export default async function InterceptPage() {
             <div className="mb-4 font-mono text-[10px] uppercase tracking-[0.3em] text-neutral-500">Timeline</div>
             <div className="border-l border-neutral-800">
               {[
-                { phase: "Submissions open now", window: "Closes October 1, 2026", color: GREEN },
-                { phase: "Blind review", window: "October 2026", color: AMBER },
-                { phase: "Accept / reject notifications", window: "By October 31, 2026", color: RED },
+                { phase: "Submissions open now", window: "Closes December 31, 2026", color: GREEN },
+                { phase: "Blind review", window: "January 2027", color: AMBER },
+                { phase: "Accept / reject notifications", window: "By late January 2027", color: RED },
               ].map((t) => (
                 <div key={t.phase} className="relative pl-6 pb-6 last:pb-0">
                   <span className="absolute left-0 top-1.5 -translate-x-1/2 h-2.5 w-2.5 rounded-full" style={{ backgroundColor: t.color }} />
@@ -193,7 +193,7 @@ export default async function InterceptPage() {
                 </div>
               ))}
             </div>
-            <p className="mt-3 font-mono text-xs text-neutral-600">✛ Some papers may be selected on a rolling basis before October 31.</p>
+            <p className="mt-3 font-mono text-xs text-neutral-600">✛ Some papers may be selected on a rolling basis before the deadline.</p>
           </div>
 
           <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3">

@@ -9,7 +9,7 @@ const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono-i" });
 export const metadata: Metadata = {
   title: "Call for Papers — INTERCEPT",
   description:
-    "INTERCEPT Call for Papers — open now, closes October 1, 2026. Blind-reviewed talks from the AARM community: builders, breakers, and defenders of agentic runtime security. Feb 2027, San Francisco.",
+    "INTERCEPT Call for Papers — open now, closes December 31, 2026. Blind-reviewed talks from the AARM community: builders, breakers, and defenders of agentic runtime security. Feb 2027, San Francisco.",
 };
 
 const AMBER = "#FF7A00";
@@ -51,9 +51,9 @@ const FORMATS = [
 
 const TIMELINE = [
   { phase: "Submissions open now", window: "Get your paper in early — some slots fill on a rolling basis", color: GREEN },
-  { phase: "Submissions close", window: "October 1, 2026", color: AMBER },
-  { phase: "Blind review", window: "Throughout October 2026", color: AMBER },
-  { phase: "Decisions + feedback", window: "By October 31, 2026", color: RED },
+  { phase: "Submissions close", window: "December 31, 2026", color: AMBER },
+  { phase: "Blind review", window: "January 2027", color: AMBER },
+  { phase: "Decisions + feedback", window: "By late January 2027", color: RED },
   { phase: "INTERCEPT", window: `${EVENT.dateStamp} · ${EVENT.location}`, color: BLUE },
 ];
 
@@ -93,7 +93,7 @@ export default function CallForPapersPage() {
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
               <span className="border border-[#2EFF7B] px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-widest text-[#2EFF7B]">● Open now</span>
-              <span className="border border-neutral-700 px-3 py-1.5 font-mono text-[11px] uppercase tracking-widest text-neutral-400">Closes October 1, 2026</span>
+              <span className="border border-neutral-700 px-3 py-1.5 font-mono text-[11px] uppercase tracking-widest text-neutral-400">Closes December 31, 2026</span>
             </div>
             <div className="mt-8">
               <Link href="/intercept/cfp" className="inline-block border-2 border-[#FF7A00] bg-[#FF7A00] px-8 py-4 font-mono text-sm font-bold uppercase tracking-[0.2em] text-black transition-colors hover:bg-transparent hover:text-[#FF7A00]">
@@ -241,7 +241,7 @@ export default function CallForPapersPage() {
           {/* CTA */}
           <div className="border border-neutral-800 bg-neutral-950 p-8 text-center">
             <h2 className="mb-3 text-white" style={{ fontFamily: "var(--font-pixel)", fontSize: "clamp(1rem, 3.5vw, 1.6rem)" }}>SHIP IT</h2>
-            <p className="mx-auto mb-6 max-w-md font-mono text-sm text-neutral-400">Sign in, build your speaker profile, and submit your paper. The window closes October 1, 2026.</p>
+            <p className="mx-auto mb-6 max-w-md font-mono text-sm text-neutral-400">Sign in, build your speaker profile, and submit your paper. The window closes December 31, 2026.</p>
             <Link href="/intercept/cfp" className="inline-block border-2 border-[#FF7A00] bg-[#FF7A00] px-8 py-4 font-mono text-sm font-bold uppercase tracking-[0.2em] text-black transition-colors hover:bg-transparent hover:text-[#FF7A00]">
               [ Submit a Paper ]
             </Link>
