@@ -11,7 +11,7 @@ import type {
 } from "@/db/taxonomy";
 import {
   notifyNewListing, notifyClaim, notifyListingDecision, notifyClaimDecision, notifyInterceptSignup,
-  notifyPaperSubmitted, notifyReviewComplete, notifyRoleGranted, notifyPaperDecision,
+  notifyPaperSubmitted, notifyPaperSubmittedAdmin, notifyReviewComplete, notifyRoleGranted, notifyPaperDecision,
 } from "@/lib/notify";
 import { ACTIVATION_CODE } from "@/lib/conformance-config";
 
@@ -456,6 +456,7 @@ export async function submitPaper(input: {
     });
   }
   await notifyPaperSubmitted({ to: u.email ?? "", talkTitle: input.talkTitle });
+  await notifyPaperSubmittedAdmin({ talkTitle: input.talkTitle, authorEmail: u.email, resubmission: !!existing });
   revalidatePath("/intercept/cfp");
 }
 

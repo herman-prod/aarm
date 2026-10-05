@@ -287,6 +287,18 @@ export async function notifyPaperSubmitted(p: { to: string; talkTitle: string })
     </p>`));
 }
 
+/** CFP: notify the organizer when a paper is submitted or resubmitted (ops, not blind). */
+export async function notifyPaperSubmittedAdmin(p: { talkTitle: string; authorEmail?: string; resubmission?: boolean }) {
+  const to = process.env.CFP_NOTIFY_TO || "herman@aarm.dev";
+  const verb = p.resubmission ? "resubmitted" : "submitted";
+  await sendEmail([to], `INTERCEPT CFP: paper ${verb}`, interceptShell(`
+    <p style="color:#e5e5e5;font-size:14px">A paper was <strong style="color:#fff">${verb}</strong> to the INTERCEPT call for papers.</p>
+    <p style="color:#a3a3a3;font-size:14px;line-height:1.7">
+      &ldquo;<strong style="color:#fff">${esc(p.talkTitle)}</strong>&rdquo;${p.authorEmail ? ` — from <span style="color:#fff">${esc(p.authorEmail)}</span>` : ""}.
+    </p>
+    <p style="margin:16px 0 0"><a href="https://aarm.dev/intercept/review" style="color:#2EFF7B;text-decoration:none">→ Open the review console</a></p>`));
+}
+
 /** CFP: someone was granted the evaluator role. */
 export async function notifyRoleGranted(p: { to: string; role: string }) {
   if (!p.to) return;
