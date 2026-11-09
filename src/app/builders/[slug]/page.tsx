@@ -8,6 +8,7 @@ import { claims } from "@/db/schema";
 import { getBuilderBySlug } from "@/lib/builders";
 import { ClaimButton } from "@/components/claim-button";
 import { BuilderLogo } from "@/components/builder-logo";
+import { safeHttpUrl } from "@/lib/safe-url";
 import type { BuilderRow } from "@/db/schema";
 
 export const dynamic = "force-dynamic";
@@ -132,9 +133,9 @@ export default async function BuilderDetailPage({ params }: Props) {
                 <p className="max-w-xl text-sm leading-relaxed text-neutral-600"><Val>{b.tagline || b.description}</Val></p>
               </div>
             </div>
-            {b.website && (
+            {safeHttpUrl(b.website) && (
               <a
-                href={/^https?:\/\//i.test(b.website) ? b.website : `https://${b.website}`}
+                href={safeHttpUrl(b.website)!}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex shrink-0 items-center gap-1.5 self-start rounded-xl border border-[#1A6EB5]/30 bg-white px-4 py-2 text-sm font-semibold text-[#1A6EB5] shadow-sm transition-colors hover:bg-[#1A6EB5] hover:text-white sm:self-center"

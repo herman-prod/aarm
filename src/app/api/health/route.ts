@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db, isDbConfigured } from "@/db";
 import { builders } from "@/db/schema";
+import { auth } from "@/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,8 @@ export async function GET() {
       ok = true;
     }
   } catch (e) {
-    error = e instanceof Error ? e.message : "unknown error";
+    console.error("[health]", e);
+    error = "database check failed";
   }
   // Booleans only — confirms whether email notifications can send.
   const notify = {
@@ -27,5 +29,9 @@ export async function GET() {
 
   const blobConfigured = !!process.env.BLOB_READ_WRITE_TOKEN;
 
+  // Public callers get liveness only; config details are for admins.
+  const session = await auth();
+  const isAdmin = !!(session?.user as { isAdmin?: boolean } | undefined)?.isAdmin;
+  if (!isAdmin) return NextResponse.json({ ok });
   return NextResponse.json({ dbConfigured: isDbConfigured, ok, builderCount, error, notify, blobConfigured });
 }

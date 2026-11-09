@@ -3,7 +3,8 @@ import { eq } from "drizzle-orm";
 import { get } from "@vercel/blob";
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { papers } from "@/db/schema";
+import { papers, paperAssignments } from "@/db/schema";
+import { isOwnPaperBlob } from "@/lib/paper-blob";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -29,8 +30,22 @@ export async function GET(req: NextRequest) {
     const isAuthor = paper.userId === user.id;
     const canReview = Boolean(user.isAdmin || user.isChair || user.isEvaluator);
     if (!isAuthor && !canReview) return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+    // Plain evaluators only see papers they're assigned to (when assignments exist).
+    if (!isAuthor && !user.isAdmin && !user.isChair) {
+      const assigned = await db
+        .select({ evaluatorId: paperAssignments.evaluatorId })
+        .from(paperAssignments)
+        .where(eq(paperAssignments.paperId, paper.id));
+      if (assigned.length > 0 && !assigned.some((a) => a.evaluatorId === user.id)) {
+        return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+      }
+    }
 
     if (!paper.fileUrl) return NextResponse.json({ error: "No file attached." }, { status: 404 });
+    // Defense in depth: never stream a blob outside the author's upload prefix.
+    if (!isOwnPaperBlob(paper.fileUrl, paper.userId)) {
+      return NextResponse.json({ error: "File unavailable." }, { status: 404 });
+    }
 
     const result = await get(paper.fileUrl, { access: "private" });
     if (!result || result.statusCode !== 200 || !result.stream) {
@@ -48,6 +63,6 @@ export async function GET(req: NextRequest) {
     });
   } catch (e) {
     console.error("[intercept paper]", e);
-    return NextResponse.json({ error: e instanceof Error ? e.message : "Failed." }, { status: 500 });
+    return NextResponse.json({ error: "Failed to load the paper." }, { status: 500 });
   }
 }

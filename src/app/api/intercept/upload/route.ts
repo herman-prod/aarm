@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { put } from "@vercel/blob";
 import { auth } from "@/auth";
+import { rateLimit, RateLimitError } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -25,6 +26,12 @@ export async function POST(req: NextRequest) {
     if (file.size > 4 * 1024 * 1024) {
       return NextResponse.json({ error: "Keep the PDF under 4MB." }, { status: 400 });
     }
+    // Extension and MIME type are client-controlled; check the file really is a PDF.
+    const head = new Uint8Array(await file.slice(0, 5).arrayBuffer());
+    if (String.fromCharCode(...head) !== "%PDF-") {
+      return NextResponse.json({ error: "That file isn't a valid PDF." }, { status: 400 });
+    }
+    await rateLimit(`upload:${session.user.id}`, 20, 3600);
 
     const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
     // Store is private: papers stay gated behind auth and are served through
@@ -35,7 +42,8 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json({ url: blob.url, name: file.name });
   } catch (e) {
+    if (e instanceof RateLimitError) return NextResponse.json({ error: e.message }, { status: 429 });
     console.error("[intercept upload]", e);
-    return NextResponse.json({ error: e instanceof Error ? e.message : "Upload failed." }, { status: 500 });
+    return NextResponse.json({ error: "Upload failed — please try again." }, { status: 500 });
   }
 }

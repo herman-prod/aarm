@@ -9,6 +9,7 @@ import { setListingStatus, reviewClaim } from "@/lib/actions";
 import { OrderingTable } from "@/components/ordering-table";
 import { DeleteBuilderButton } from "@/components/delete-builder-button";
 import { asc } from "drizzle-orm";
+import { safeHttpUrl } from "@/lib/safe-url";
 
 export const metadata: Metadata = { title: "Admin — AARM" };
 export const dynamic = "force-dynamic";
@@ -88,7 +89,7 @@ export default async function AdminPage() {
                   {b.category && <span className="text-xs text-neutral-400">· {b.category}</span>}
                 </div>
                 <p className="mb-1 text-sm text-neutral-500">{b.description}</p>
-                <a href={b.website ?? "#"} target="_blank" rel="noopener noreferrer" className="text-xs" style={{ color: "#1A6EB5" }}>
+                <a href={safeHttpUrl(b.website) ?? "#"} target="_blank" rel="noopener noreferrer" className="text-xs" style={{ color: "#1A6EB5" }}>
                   {b.website}
                 </a>
                 <div className="mt-4 flex gap-2">

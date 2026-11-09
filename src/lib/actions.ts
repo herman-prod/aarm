@@ -14,6 +14,14 @@ import {
   notifyPaperSubmitted, notifyPaperSubmittedAdmin, notifyReviewComplete, notifyRoleGranted, notifyPaperDecision,
 } from "@/lib/notify";
 import { ACTIVATION_CODE } from "@/lib/conformance-config";
+import { rateLimit, clientIp } from "@/lib/rate-limit";
+import { safeHttpUrl } from "@/lib/safe-url";
+import { isOwnPaperBlob } from "@/lib/paper-blob";
+
+/** Rejects over-long free text so a single field can't bloat rows or emails. */
+function maxLen(value: string | null | undefined, max: number, label: string) {
+  if (value && value.length > max) throw new Error(`${label} is too long (max ${max} characters).`);
+}
 
 function slugify(name: string) {
   return name.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
@@ -57,6 +65,15 @@ export async function submitListing(input: {
 }) {
   const database = await requireDb();
   const user = await requireUser();
+  await rateLimit(`listing:${user.id}`, 5, 3600);
+
+  const website = safeHttpUrl(input.website);
+  if (!website) throw new Error("Enter a valid http(s) website URL.");
+  input = { ...input, website };
+  maxLen(input.name, 120, "Company name");
+  maxLen(input.description, 2000, "Description");
+  maxLen(input.pocName, 120, "Point-of-contact name");
+  maxLen(input.pocEmail, 254, "Point-of-contact email");
 
   // Ensure a unique slug — a company with the same name may already be listed.
   const base = slugify(input.name);
@@ -109,8 +126,19 @@ export async function requestClaim(builderId: string) {
   const user = await requireUser();
   const [b] = await database.select().from(builders).where(eq(builders.id, builderId)).limit(1);
   if (!b) throw new Error("Listing not found.");
+  if (b.claimedBy === user.id) throw new Error("You already maintain this listing.");
+  await rateLimit(`claim:${user.id}`, 5, 3600);
 
-  const domainMatch = !!user.emailDomain && user.emailDomain === b.domain;
+  const [pending] = await database
+    .select({ id: claims.id })
+    .from(claims)
+    .where(and(eq(claims.builderId, builderId), eq(claims.userId, user.id), eq(claims.status, "pending")))
+    .limit(1);
+  if (pending) return { status: "pending" as const };
+
+  // Domain match auto-approves only an unowned listing; taking over a listing
+  // someone else already maintains always goes to manual TWG review.
+  const domainMatch = !!user.emailDomain && user.emailDomain === b.domain && !b.claimedBy;
   await database.insert(claims).values({
     builderId,
     userId: user.id,
@@ -169,10 +197,34 @@ export async function updateOwnedBuilder(
   if (!/^\S+@\S+\.\S+$/.test(input.pocEmail.trim())) {
     throw new Error("Enter a valid point-of-contact email.");
   }
+  maxLen(input.description, 2000, "Description");
+  maxLen(input.pocName, 120, "Point-of-contact name");
+  maxLen(input.pocEmail, 254, "Point-of-contact email");
+  const logoUrl = input.logoUrl ? safeHttpUrl(input.logoUrl) : input.logoUrl;
+  if (input.logoUrl && !logoUrl) throw new Error("Logo URL must be an http(s) URL.");
 
+  // Explicit allowlist. Server actions accept arbitrary JSON at runtime, so
+  // spreading `input` would let an owner set TWG-only fields like
+  // conformanceLevel, featured, status, or claimedBy.
   await database
     .update(builders)
-    .set({ ...input, updatedAt: new Date() })
+    .set({
+      description: input.description,
+      logoUrl,
+      category: input.category,
+      secondaryCategory: input.secondaryCategory,
+      surfaces: input.surfaces,
+      stage: input.stage,
+      types: input.types,
+      audiences: input.audiences,
+      deployments: input.deployments,
+      interception: input.interception,
+      policyModel: input.policyModel,
+      decisions: input.decisions,
+      pocName: input.pocName,
+      pocEmail: input.pocEmail,
+      updatedAt: new Date(),
+    })
     .where(eq(builders.id, builderId));
   revalidatePath(`/builders/${b.slug}`);
   revalidatePath("/builders");
@@ -399,6 +451,14 @@ export async function saveSpeakerProfile(input: {
   if (!input.firstName.trim() || !input.lastName.trim() || !input.bio.trim()) {
     throw new Error("First name, surname, and bio are required.");
   }
+  maxLen(input.firstName, 80, "First name");
+  maxLen(input.lastName, 80, "Surname");
+  maxLen(input.bio, 2000, "Bio");
+  maxLen(input.title, 160, "Title");
+  maxLen(input.companyWebsite, 300, "Company website");
+  if (input.companyWebsite?.trim() && !safeHttpUrl(input.companyWebsite)) {
+    throw new Error("Company website must be an http(s) URL.");
+  }
   await database
     .insert(speakerProfiles)
     .values({
@@ -432,6 +492,17 @@ export async function submitPaper(input: {
   if (!input.fileUrl) {
     throw new Error("A PDF paper in IEEE conference format is required.");
   }
+  maxLen(input.talkTitle, 200, "Talk title");
+  maxLen(input.coreTopics, 4000, "Core topics");
+  maxLen(input.keyTakeaways, 4000, "Key takeaways");
+  maxLen(input.relevance, 4000, "Why it matters");
+  maxLen(input.fileName, 200, "File name");
+  // The file must be one this user uploaded. Otherwise an author could point
+  // their paper at someone else's private blob and read it via the proxy.
+  if (!isOwnPaperBlob(input.fileUrl, u.id)) {
+    throw new Error("Please upload your paper again.");
+  }
+  await rateLimit(`paper:${u.id}`, 10, 3600);
 
   // One paper per author. Authors may resubmit (edit) while the paper is still
   // in the pipeline; once a final decision is made it's locked.
@@ -495,8 +566,17 @@ export async function listPeople() {
 export async function setUserRole(userId: string, input: { isEvaluator?: boolean; isChair?: boolean }) {
   const database = await requireDb();
   const actor = await requireChairOrAdmin();
+  // Chairs manage evaluators; only admins can grant or revoke the chair role.
+  if (input.isChair !== undefined && !actor.isAdmin) throw new Error("Only an admin can change the chair role.");
   const [target] = await database.select().from(users).where(eq(users.id, userId)).limit(1);
-  await database.update(users).set({ isEvaluator: input.isEvaluator, isChair: input.isChair }).where(eq(users.id, userId));
+  if (!target) throw new Error("User not found.");
+  await database
+    .update(users)
+    .set({
+      isEvaluator: typeof input.isEvaluator === "boolean" ? input.isEvaluator : undefined,
+      isChair: typeof input.isChair === "boolean" ? input.isChair : undefined,
+    })
+    .where(eq(users.id, userId));
   if (input.isEvaluator && target?.email && !target.isEvaluator) {
     await notifyRoleGranted({ to: target.email, role: "evaluator" });
   }
@@ -540,6 +620,50 @@ export async function getReviewQueue() {
     });
 }
 
+/**
+ * Single access check for the review flow. Plain evaluators must be assigned
+ * (when a paper has assignments); nobody scores their own paper; decided
+ * papers are read-only.
+ */
+async function assertReviewAccess(
+  u: { id: string; isAdmin?: boolean },
+  paperId: string,
+  mode: "view" | "score"
+) {
+  const database = await requireDb();
+  const [p] = await database
+    .select({ userId: papers.userId, status: papers.status })
+    .from(papers)
+    .where(eq(papers.id, paperId))
+    .limit(1);
+  if (!p) throw new Error("Paper not found.");
+  const privileged = !!u.isAdmin || !!(u as { isChair?: boolean }).isChair;
+  if (p.userId === u.id && (mode === "score" || !privileged)) {
+    throw new Error("You can't review your own paper.");
+  }
+  if (mode === "score" && (p.status === "accepted" || p.status === "rejected")) {
+    throw new Error("This paper already has a final decision.");
+  }
+  if (!privileged) {
+    const assigned = await database
+      .select({ evaluatorId: paperAssignments.evaluatorId })
+      .from(paperAssignments)
+      .where(eq(paperAssignments.paperId, paperId));
+    if (assigned.length > 0 && !assigned.some((a) => a.evaluatorId === u.id)) {
+      throw new Error("You're not assigned to review this paper.");
+    }
+  }
+}
+
+function validScore(v: unknown, label: string): number | null | undefined {
+  if (v === undefined) return undefined;
+  if (v === null) return null;
+  if (typeof v !== "number" || !Number.isInteger(v) || v < 1 || v > 10) {
+    throw new Error(`${label} score must be a whole number from 1 to 10.`);
+  }
+  return v;
+}
+
 /** A single paper for blind review — no author identity. */
 export async function getPaperForReview(paperId: string) {
   const database = await requireDb();
@@ -550,23 +674,7 @@ export async function getPaperForReview(paperId: string) {
     .where(eq(papers.id, paperId))
     .limit(1);
   if (!p) throw new Error("Paper not found.");
-
-  // Enforce chair assignments for plain evaluators (chairs/admins see all).
-  const flags = u as { isAdmin?: boolean; isChair?: boolean };
-  if (!flags.isAdmin && !flags.isChair) {
-    const assigned = await database
-      .select({ id: paperAssignments.id })
-      .from(paperAssignments)
-      .where(eq(paperAssignments.paperId, paperId));
-    if (assigned.length > 0) {
-      const [mine] = await database
-        .select({ id: paperAssignments.id })
-        .from(paperAssignments)
-        .where(and(eq(paperAssignments.paperId, paperId), eq(paperAssignments.evaluatorId, u.id)))
-        .limit(1);
-      if (!mine) throw new Error("You're not assigned to review this paper.");
-    }
-  }
+  await assertReviewAccess(u, paperId, "view");
 
   const [r] = await database
     .select()
@@ -583,12 +691,35 @@ export async function saveReviewScores(paperId: string, input: {
 }) {
   const database = await requireDb();
   const u = await requireEvaluator();
+  await assertReviewAccess(u, paperId, "score");
+
+  // Explicit fields only. Spreading `input` after evaluatorId would let a
+  // caller forge a review as another evaluator or mark it completed directly.
+  const fields = {
+    scoreCore: validScore(input.scoreCore, "Core topics"),
+    scoreTakeaways: validScore(input.scoreTakeaways, "Key takeaways"),
+    scoreRelevance: validScore(input.scoreRelevance, "Why it matters"),
+    commentCore: input.commentCore,
+    commentTakeaways: input.commentTakeaways,
+    commentRelevance: input.commentRelevance,
+  };
+  maxLen(fields.commentCore, 4000, "Comment");
+  maxLen(fields.commentTakeaways, 4000, "Comment");
+  maxLen(fields.commentRelevance, 4000, "Comment");
+
+  const [existing] = await database
+    .select({ completed: paperReviews.completed })
+    .from(paperReviews)
+    .where(and(eq(paperReviews.paperId, paperId), eq(paperReviews.evaluatorId, u.id)))
+    .limit(1);
+  if (existing?.completed) throw new Error("This review is already completed.");
+
   await database
     .insert(paperReviews)
-    .values({ paperId, evaluatorId: u.id, ...input })
+    .values({ paperId, evaluatorId: u.id, ...fields })
     .onConflictDoUpdate({
       target: [paperReviews.paperId, paperReviews.evaluatorId],
-      set: { ...input, updatedAt: new Date() },
+      set: { ...fields, updatedAt: new Date() },
     });
   revalidatePath("/intercept/review");
 }
@@ -596,6 +727,9 @@ export async function saveReviewScores(paperId: string, input: {
 export async function completeReview(paperId: string) {
   const database = await requireDb();
   const u = await requireEvaluator();
+  // Also blocks decided papers, so completing a review can't flip an accepted
+  // or rejected paper back to under_review.
+  await assertReviewAccess(u, paperId, "score");
   const [r] = await database
     .select()
     .from(paperReviews)
@@ -604,6 +738,7 @@ export async function completeReview(paperId: string) {
   if (!r || r.scoreCore == null || r.scoreTakeaways == null || r.scoreRelevance == null) {
     throw new Error("Score all three sections before completing the review.");
   }
+  if (r.completed) return;
   await database.update(paperReviews).set({ completed: true, completedAt: new Date() }).where(eq(paperReviews.id, r.id));
   await database.update(papers).set({ status: "under_review", updatedAt: new Date() }).where(eq(papers.id, paperId));
 
@@ -709,7 +844,13 @@ export async function setPaperAssignments(paperId: string, evaluatorIds: string[
 
   const [p] = await database.select({ id: papers.id, userId: papers.userId }).from(papers).where(eq(papers.id, paperId)).limit(1);
   if (!p) throw new Error("Paper not found.");
-  const ids = [...new Set(evaluatorIds)].filter((id) => id !== p.userId);
+  if (!Array.isArray(evaluatorIds) || evaluatorIds.some((id) => typeof id !== "string")) {
+    throw new Error("Invalid evaluator list.");
+  }
+  // Only real evaluators can be assigned, and never the paper's author.
+  const evaluatorRows = await database.select({ id: users.id }).from(users).where(eq(users.isEvaluator, true));
+  const valid = new Set(evaluatorRows.map((e) => e.id));
+  const ids = [...new Set(evaluatorIds)].filter((id) => id !== p.userId && valid.has(id));
 
   // Replace the assignment set for this paper.
   await database.delete(paperAssignments).where(eq(paperAssignments.paperId, paperId));
@@ -724,6 +865,7 @@ export async function setPaperAssignments(paperId: string, evaluatorIds: string[
 export async function setPaperDecision(paperId: string, decision: "accepted" | "rejected") {
   const database = await requireDb();
   await requireChairOrAdmin();
+  if (decision !== "accepted" && decision !== "rejected") throw new Error("Invalid decision.");
 
   // Require at least 3 completed reviews before any decision.
   const completed = await database

@@ -240,3 +240,10 @@ export const interceptSignups = pgTable("intercept_signup", {
 export type BuilderRow = typeof builders.$inferSelect;
 export type NewBuilderRow = typeof builders.$inferInsert;
 export type ClaimRow = typeof claims.$inferSelect;
+
+// Fixed-window rate limiting for abuse-prone actions (email sends, uploads).
+export const rateLimits = pgTable("rate_limit", {
+  key: text("key").primaryKey(),
+  count: integer("count").notNull().default(0),
+  windowStart: timestamp("window_start", { withTimezone: true }).defaultNow().notNull(),
+});

@@ -30,10 +30,10 @@ export function PeopleTable({ people }: { people: Person[] }) {
               <td className="px-4 py-2.5 font-medium text-neutral-800">{p.name || "—"}</td>
               <td className="px-4 py-2.5 text-neutral-500">{p.email || "—"}</td>
               <td className="px-4 py-2.5">
-                <input type="checkbox" disabled={pending} checked={!!p.isEvaluator} onChange={(e) => toggle(p.id, { isEvaluator: e.target.checked, isChair: !!p.isChair })} className="h-4 w-4 accent-blue-600" />
+                <input type="checkbox" disabled={pending} checked={!!p.isEvaluator} onChange={(e) => toggle(p.id, { isEvaluator: e.target.checked })} className="h-4 w-4 accent-blue-600" />
               </td>
               <td className="px-4 py-2.5">
-                <input type="checkbox" disabled={pending} checked={!!p.isChair} onChange={(e) => toggle(p.id, { isChair: e.target.checked, isEvaluator: !!p.isEvaluator })} className="h-4 w-4 accent-neutral-900" />
+                <input type="checkbox" disabled={pending} checked={!!p.isChair} onChange={(e) => toggle(p.id, { isChair: e.target.checked })} className="h-4 w-4 accent-neutral-900" />
               </td>
               <td className="px-4 py-2.5 font-mono text-[11px] uppercase text-neutral-400">{p.isAdmin ? "yes" : "—"}</td>
             </tr>
