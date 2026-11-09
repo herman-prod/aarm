@@ -401,7 +401,22 @@ export async function submitInterceptSignup(input: {
 }): Promise<{ ok: true }> {
   const database = await requireDb();
   const email = input.email.trim().toLowerCase();
-  if (!/^\S+@\S+\.\S+$/.test(email)) throw new Error("Enter a valid email address.");
+  if (!/^\S+@\S+\.\S+$/.test(email) || email.length > 254) throw new Error("Enter a valid email address.");
+  maxLen(input.name, 120, "Name");
+  maxLen(input.company, 120, "Company");
+  // Unauthenticated + sends email: limit per IP and per recipient.
+  await rateLimit(`signup-ip:${await clientIp()}`, 5, 3600);
+  await rateLimit(`signup-email:${email}`, 2, 86400);
+
+  // Already signed up → don't send another email. Same response either way, so
+  // this can't be used to check whether an address is registered.
+  const [existing] = await database
+    .select({ id: interceptSignups.id })
+    .from(interceptSignups)
+    .where(eq(interceptSignups.email, email))
+    .limit(1);
+  if (existing) return { ok: true };
+
   // Store the signup in the existing Neon DB, then send the confirmation email.
   await database.insert(interceptSignups).values({
     email,
