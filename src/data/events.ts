@@ -26,6 +26,19 @@ export type AARMEvent = {
 
 export const EVENTS: AARMEvent[] = [
   {
+    id: "before-the-action-webinar",
+    name: "Before the Action: Securing What Agents Actually Do",
+    url: "https://us06web.zoom.us/webinar/register/1317939060594/WN_8EGuLQ-pSmqrdhSUudCgsg",
+    dateLabel: "November 12, 2026 · 10:00 AM PT",
+    startISO: "2026-11-12",
+    endISO: "2026-11-12",
+    location: "Online · Zoom webinar",
+    description:
+      "A 35-minute fireside chat on governing AI agents at the point of action — no slides, no demos. Herman Errico (creator of AARM, CSA working group chair, Vanta) and Rahul Parwani (AI governance and security product, Airia — among the first AARM-conformant platforms) cover what AARM requires and why, how to evaluate agent security tools, and build vs. buy at the action boundary. Register to join live or get the recording.",
+    tag: "Community",
+    featured: true,
+  },
+  {
     id: "aarm-intercept-demo-night",
     name: "AARM Intercept Demo Night",
     url: "https://luma.com/vanta-zg62",
