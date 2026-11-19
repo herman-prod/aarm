@@ -57,6 +57,7 @@ export const BUILDERS: Builder[] = [
   { name: "LangGuard", desc: "AI Control Plane for runtime governance and automated remediation.", conformance: "Aligned", url: "https://www.langguard.ai" },
   { name: "Capsule Security", desc: "Protects AI agents at runtime with a Guardian Agent that detects rogue behavior.", conformance: "Aligned", url: "https://www.capsulesecurity.io" },
   { name: "Strix Governance", desc: "Embedded governance kernel with execution tokens and tamper-evident audit trails.", conformance: "Aligned", url: "https://www.strixgov.com" },
+  { name: "Auditant", desc: "Compliance system-of-record for AI agents: pre-execution policy checks with human sign-off, per-action signed receipts, and a hash-chained record anchored to RFC 3161 and S3 Object Lock that an auditor verifies offline — with no vendor account.", conformance: "Aligned", url: "https://auditant.co" },
   { name: "Nudge Security", desc: "Govern the AI agent workforce. Discover, assess risk, enforce guardrails.", conformance: "Aligned", url: "https://www.nudgesecurity.com" },
   { name: "Kontext", desc: "Runtime authorization for AI agents with least-privilege tool calls, scoped credentials, audit trails, and instant revocation.", conformance: "Aligned", url: "https://kontext.security" },
   { name: "Kōtsū", desc: "Runtime governor for regulated workflows: specify, deploy, govern, and certify agentic operations.", conformance: "Aligned", url: "https://kotsu.ai" },
