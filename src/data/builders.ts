@@ -70,4 +70,5 @@ export const BUILDERS: Builder[] = [
   { name: "Reva AI", desc: "Intent & Behavior-based Access Control (IBAC) for every agentic action, at runtime.", conformance: "Aligned", url: "https://www.reva.ai" },
   { name: "Metano AI", desc: "Discover, monitor, govern, and defend autonomous agents everywhere they operate - across SaaS, endpoints, and shadow environments.", conformance: "Aligned", url: "https://metano.ai" },
   { name: "SURADAR", desc: "Cryptographic per-action authorization for AI agents — tamper-evident receipts, identity binding, and memory provenance.", conformance: "Aligned", url: "https://glyphzerolabs.com" },
+  { name: "Orbiter Dev", desc: "One-tap out-of-band mobile biometric sign-off (iOS & Android) and pre-execution policy gates for autonomous AI agents across engineering and business workflows.", conformance: "Aligned", url: "https://orbiterdev.ai" },
 ];
